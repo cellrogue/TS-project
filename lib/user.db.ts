@@ -12,7 +12,8 @@ export const addNewUser = async (user: User): Promise<void> => {
         
         await setDoc(doc(db, 'users', user.id), {
             ...user,
-            password: hashedPassword
+            password: hashedPassword,
+            isModerator: user.isModerator ?? false
         });
         
         toast.success('User added successfully!')
@@ -27,7 +28,9 @@ export const getUserById = async (userId: string): Promise<User | null> => {
         const userDocRef = doc(db, 'users', userId);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
-            return { id: userDoc.id, ...userDoc.data() } as User;
+            const userData = { id: userDoc.id, ...userDoc.data() } as User;
+            console.log('User data:', userData);
+            return userData;
         }
         return null;
     } catch (error) {

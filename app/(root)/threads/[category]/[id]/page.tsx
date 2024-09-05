@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getThreadById, lockThread, updateThread } from '@/lib/thread.db';
-import { FaUnlock, FaLock } from 'react-icons/fa';
+import { deleteThread, getThreadById, lockThread, updateThread } from '@/lib/thread.db';
+import { FaUnlock, FaLock, FaTrash } from 'react-icons/fa';
 
 import {
     Table,
@@ -40,6 +40,8 @@ const ThreadDetailsPage = () => {
     const { user } = useAuth();
     const router = useRouter();
     const [loading, setLoading] = useState(true);
+
+    const isModerator = user?.isModerator || false;
 
     useEffect(() => {
         const fetchThread = async () => {
@@ -82,6 +84,17 @@ const ThreadDetailsPage = () => {
         }
     };
 
+    const handleDeleteThread = async () => {
+        if (!thread || !user ) return;
+
+        try {
+            await deleteThread(thread.id, user.id);
+            router.push('/');
+        } catch (error) {
+            console.error('Failed to delete thread.', error);
+        }
+    }
+
     if (loading || !thread) return <Loading />;
 
     return (
@@ -97,21 +110,32 @@ const ThreadDetailsPage = () => {
                                     </div>
                                     <div className='mr-2'>
                                         {user && (
+                                            <>
                                             <button onClick={handleToggleLock}>
                                                 {thread.isLocked ? (
                                                     <Badge
-                                                        variant='destructive'
-                                                        className='rounded-full p-3'>
+                                                    variant='destructive'
+                                                    className='rounded-full p-3'>
                                                         <FaLock className='h-3 w-3' />
                                                     </Badge>
                                                 ) : (
                                                     <Badge
-                                                        variant='secondary'
-                                                        className='rounded-full p-3 transition-all duration-300 hover:scale-105'>
+                                                    variant='secondary'
+                                                    className='rounded-full p-3 transition-all duration-300 hover:scale-105'>
                                                         <FaUnlock className='h-3 w-3' />
                                                     </Badge>
                                                 )}
                                             </button>
+                                            {(user.id === thread.creator.id || isModerator ) && (
+                                                <button onClick={handleDeleteThread}>
+                                                    <Badge
+                                                        variant='destructive'
+                                                        className='rounded-full p-3 m-2'>
+                                                        <FaTrash className='h-3 w-3' />
+                                                    </Badge>
+                                                </button>
+                                            )}
+                                            </>
                                         )}
                                     </div>
                                 </TableHead>
@@ -152,6 +176,7 @@ const ThreadDetailsPage = () => {
                     <Comments
                         isQnA={thread.isQnA ?? false}
                         isLocked={thread.isLocked}
+                        threadCreatorId={thread.creator.id}
                     />
                 )}
             </div>

@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { Comment, Thread } from '@/app/types/thread';
 import { getThreadById, updateThread } from '@/lib/thread.db';
 import { useParams } from 'next/navigation';
+import { useAuth } from '../providers/authProvider';
 
 type CommentsContextType = {
     comments: Comment[];
@@ -16,6 +17,7 @@ type CommentsContextType = {
     handleCommentSubmit: (newComment: Comment) => Promise<void>;
     handleMarkAsAnswered: (commentId: string) => Promise<void>;
     id: string;
+    threadCreatorId: string | null; 
 };
 
 type Params = {
@@ -26,16 +28,14 @@ export const CommentsContext = createContext<CommentsContextType | undefined>(
     undefined
 );
 
-const CommentsProvider: React.FC<{ children: React.ReactNode }> = ({
-    children,
-}) => {
+const CommentsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { user: currentUser } = useAuth();
     const [thread, setThread] = useState<Thread | null>(null);
     const [comments, setComments] = useState<Comment[]>([]);
     const [answered, setAnswered] = useState<boolean>(false);
-    const [answeredCommentId, setAnsweredCommentId] = useState<string | null>(
-        null
-    );
+    const [answeredCommentId, setAnsweredCommentId] = useState<string | null>(null);
     const { id } = useParams<Params>();
+    const threadCreatorId = thread?.creator.id || null; 
 
     useEffect(() => {
         const fetchThreadData = async () => {
@@ -48,11 +48,9 @@ const CommentsProvider: React.FC<{ children: React.ReactNode }> = ({
         };
 
         fetchThreadData();
-    }, []);
+    }, [id]); 
 
-    const answeredComment = comments.find(
-        (comment) => comment.id === answeredCommentId
-    );
+    const answeredComment = comments.find((comment) => comment.id === answeredCommentId);
 
     const handleCommentSubmit = async (newComment: Comment): Promise<void> => {
         if (thread) {
@@ -61,30 +59,29 @@ const CommentsProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     const handleMarkAsAnswered = async (commentId: string): Promise<void> => {
-        try {
-            if (!thread) {
-                console.error('Thread not found.');
-                return;
+        if (!thread) {
+            console.error('Thread not found.');
+            return;
+        }
+
+        if (thread.isQnA && currentUser?.id === thread.creator.id) {
+            try {
+                const newIsAnswered = answeredCommentId !== commentId;
+
+                const fieldsToUpdate: Partial<Thread> = {
+                    isAnswered: newIsAnswered,
+                    answeredCommentId: newIsAnswered ? commentId : null,
+                };
+
+                await updateThread(thread.id, fieldsToUpdate);
+
+                setAnswered(newIsAnswered);
+                setAnsweredCommentId(newIsAnswered ? commentId : null);
+            } catch (error) {
+                console.error('Error toggling comment as answered:', error);
             }
-
-            const newIsAnswered = answeredCommentId !== commentId;
-
-            const fieldsToUpdate: Partial<Thread> = {
-                isAnswered: newIsAnswered,
-            };
-
-            if (newIsAnswered) {
-                fieldsToUpdate.answeredCommentId = commentId;
-            } else {
-                fieldsToUpdate.answeredCommentId = null;
-            }
-
-            await updateThread(thread.id, fieldsToUpdate);
-
-            setAnswered(newIsAnswered);
-            setAnsweredCommentId(newIsAnswered ? commentId : null);
-        } catch (error) {
-            console.error('Error toggling comment as answered:', error);
+        } else {
+            console.error('Only the thread creator can mark a comment as an answer.');
         }
     };
 
@@ -99,6 +96,7 @@ const CommentsProvider: React.FC<{ children: React.ReactNode }> = ({
         answered,
         setAnswered,
         id,
+        threadCreatorId, 
     };
 
     return (

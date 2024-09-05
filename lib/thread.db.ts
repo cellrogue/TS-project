@@ -4,7 +4,25 @@ import { setDoc, doc, getDoc, deleteDoc, collection, getDocs, addDoc, updateDoc 
 import toast from 'react-hot-toast';
 import { Timestamp } from 'firebase/firestore'; 
 import { getUserById } from './user.db';
+import { User } from '@/app/types/user';
+import { comment } from 'postcss';
 
+const isThreadCreator = async (threadId: string, userId: string): Promise<boolean> => {
+    const threadDoc = await getDoc(doc(db, 'threads', threadId));
+    if (threadDoc.exists()) {
+        const threadData = threadDoc.data() as Thread;
+        return threadData.creator.id === userId;
+    }
+    return false;
+};
+
+const isModerator = async (userId: string): Promise<boolean> => {
+    const user = await getUserById(userId);
+    if (user) {
+        return user.isModerator === true
+    }
+    return false;
+};
 
 export const getAllThreads = async (): Promise<Thread[]> => {
     try {
@@ -134,6 +152,40 @@ export const lockThread = async (threadId: string, isLocked: boolean): Promise<v
     } catch (error) {
         toast.error(`Failed to ${isLocked ? 'lock' : 'unlock'} thread: ` + (error as Error).message);
         console.error(`Error ${isLocked ? 'locking' : 'unlocking'} thread:`, error);
+    }
+};
+
+export const deleteThread = async (threadId: string, userId: string): Promise<void> => {
+    try {
+        const threadDocRef = doc(db, 'threads', threadId);
+        const threadDoc = await getDoc(threadDocRef);
+
+        if (!threadDoc.exists()) {
+            throw new Error('Thread not found');
+        }
+
+        const threadData = threadDoc.data() as Thread;
+
+        const userIsCreator = await isThreadCreator(threadId, userId);
+        const userIsModerator = await isModerator(userId);
+
+        console.log('User is creator:', userIsCreator);
+        console.log('User is moderator:', userIsModerator);
+
+        if (!userIsCreator && !userIsModerator) {
+            throw new Error('You are not authorized to delete this thread');
+        }
+
+        const commentsCollection = collection(db, 'threads', threadId, 'comments');
+        const commentsSnapshot = await getDocs(commentsCollection);
+        const deleteCommentsPromises = commentsSnapshot.docs.map(commentDoc => deleteDoc(commentDoc.ref));
+        await Promise.all(deleteCommentsPromises);
+
+        await deleteDoc(threadDocRef);
+        toast.success('Thread deleted successfully!');
+    } catch (error) {
+        toast.error('Failed to delete thread: ' + (error as Error).message);
+        console.error('Error deleting thread:', error);
     }
 };
 
