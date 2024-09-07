@@ -34,7 +34,8 @@ export const getAllThreads = async (): Promise<Thread[]> => {
                 ...data,
                 id: doc.id,
                 creationDate: Timestamp.fromDate(data.creationDate.toDate()),
-                comments: []
+                comments: [],
+                tags: data.tags || []
             };
 
             const commentsCollection = collection(db, 'threads', doc.id, 'comments');
@@ -77,7 +78,8 @@ export const getThreadById = async (id: string): Promise<Thread | null> => {
                 id: comment.id || `${id}-${index}`,
                 creationDate: Timestamp.fromDate(comment.creationDate.toDate()),
                 user: comment.creator.email
-            })) : []
+            })) : [],
+            tags: data.tags || []
         };
 
         console.log(`Fetched ${thread.comments.length} comments for thread ID ${id}.`);
@@ -110,7 +112,8 @@ export const createThread = async (data: Thread) => {
             comments: [],
             isQnA: data.isQnA || false,
             isAnswered: data.isAnswered || false,
-            isLocked: data.isLocked || false
+            isLocked: data.isLocked || false,
+            tags: data.tags || []
         };
 
         await addDoc(collection(db, 'threads'), newThread);

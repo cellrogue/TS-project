@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { useEffect, useState } from 'react';
-import { Thread } from '../app/types/thread';
+import { Thread, ThreadStatus } from '../app/types/thread';
 import { getAllThreads, getThreadById } from '@/lib/thread.db';
 import {
     Table,
@@ -19,7 +19,9 @@ import Loading from './Loading';
 
 export const LatestThreads = () => {
     const [threads, setThreads] = useState<Thread[]>([]);
+    const [filteredThreads, setFilteredThreads] = useState<Thread[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedStatus, setSelectedStatus] = useState<ThreadStatus | 'All'>('All');
 
     const router = useRouter();
 
@@ -28,6 +30,7 @@ export const LatestThreads = () => {
             try {
                 const data: Thread[] = await getAllThreads();
                 setThreads(data);
+                setFilteredThreads(data);
             } catch (error) {
                 console.error('Error fetching threads:', error);
             } finally {
@@ -37,6 +40,14 @@ export const LatestThreads = () => {
 
         fetchThreads();
     }, []);
+
+    useEffect(() => {
+        if (selectedStatus === 'All') {
+            setFilteredThreads(threads);
+        } else {
+            setFilteredThreads(threads.filter(thread => thread.status === selectedStatus));
+        }
+    }, [selectedStatus, threads]);
 
     if (loading) return <Loading />;
 
@@ -56,6 +67,20 @@ export const LatestThreads = () => {
 
     return (
         <div className='mx-auto w-full pl-12 px-6 my-8 max-w-6xl'>
+            <div className='mb-4'>
+                <label htmlFor="statusFilter" className='mr-2'>Filter by Status:</label>
+                <select
+                    id="statusFilter"
+                    value={selectedStatus}
+                    onChange={(e) => setSelectedStatus(e.target.value as ThreadStatus | 'All')}
+                    className='p-2 border rounded'
+                >
+                    <option value="All">All</option>
+                    <option value="New">New</option>
+                    <option value="Hot">Hot</option>
+                </select>
+            </div>
+
             <Table className='border dark:border-muted'>
                 <TableHeader>
                     <TableRow>
@@ -65,8 +90,8 @@ export const LatestThreads = () => {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {threads.length ? (
-                        threads.map((thread) => (
+                    {filteredThreads.length ? (
+                        filteredThreads.map((thread) => (
                             <TableRow
                                 key={thread.id}
                                 onClick={() =>

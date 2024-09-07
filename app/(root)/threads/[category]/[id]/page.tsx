@@ -168,6 +168,22 @@ const ThreadDetailsPage = () => {
                                     </div>
                                 </TableCell>
                             </TableRow>
+                            <TableRow className='bg-secondary'>
+                                <TableCell>
+                                    <div className='flex gap-2 mt-2'>
+                                        <span className='font-semibold'>Tags:</span>
+                                        {thread.tags.length > 0 ? (
+                                            thread.tags.map((tag) => (
+                                                <Badge key={tag.id} variant='outline'>
+                                                    {tag.name}
+                                                </Badge>
+                                            ))
+                                        ) : (
+                                            <span>No tags available</span>
+                                        )}
+                                    </div>
+                                </TableCell>
+                            </TableRow>
                         </TableBody>
                     </Table>
                 </div>

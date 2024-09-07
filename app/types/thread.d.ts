@@ -10,11 +10,17 @@ type ThreadCategory =
 
 type ThreadStatus = 'New' | 'Hot';
 
+type Tag = {
+    id: string;
+    name: string;
+}
+
 export type Comment = {
   id: string;
   content: string;
   creationDate: Timestamp;
   creator: User;
+  parentId?: string;
 }
 
 export type Thread = {
@@ -30,6 +36,5 @@ export type Thread = {
   isAnswered?:boolean;
   answeredCommentId?: string | null;
   isLocked: boolean;
+  tags: Tag[];
 }
-
-

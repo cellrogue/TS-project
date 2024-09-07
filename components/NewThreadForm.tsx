@@ -26,6 +26,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { CheckedState } from '@radix-ui/react-checkbox';
 import { useRouter } from 'next/navigation';
+import TagsInput from './TagsInput';
 
 const FormSchema = z.object({
     threadTitle: z.string().min(10, {
@@ -38,6 +39,7 @@ const FormSchema = z.object({
         message: 'Thread category is required.',
     }),
     isQnA: z.boolean().optional(),
+    tags: z.array(z.string()).optional(),
 });
 
 export const NewThreadForm = () => {
@@ -50,7 +52,8 @@ export const NewThreadForm = () => {
             threadBody: '',
             threadCategory: '',
             isQnA: false,
-        } as z.infer<typeof FormSchema>,
+            tags: [],
+        },
     });
 
     const onSubmit = async (data: z.infer<typeof FormSchema>) => {
@@ -76,6 +79,7 @@ export const NewThreadForm = () => {
                 isQnA: data.isQnA || false,
                 isAnswered: false,
                 isLocked: false,
+                tags: (data.tags || []).map(tag => ({ id: '', name: tag })),
             };
 
             await createThread(newThread);
@@ -90,7 +94,6 @@ export const NewThreadForm = () => {
     };
 
     const handleCheckedQnA = (checked: boolean) => {
-        console.log('checked called!');
         console.log('Checkbox checked:', checked);
     };
 
@@ -135,6 +138,19 @@ export const NewThreadForm = () => {
                                     {...field}
                                 />
                             </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name='tags'
+                    render={({ field }) => (
+                        <FormItem>
+                            <TagsInput
+                                value={field.value || []}
+                                onChange={(tags) => field.onChange(tags)}
+                            />
                             <FormMessage />
                         </FormItem>
                     )}
