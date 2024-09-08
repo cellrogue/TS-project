@@ -135,7 +135,11 @@ export const Navigation = () => {
                     <div className='flex gap-4'>
                         <Badge
                             variant='default'
-                            className='text-sm font-light'>
+                            className={cn(
+                                'text-sm font-light',
+                                user?.isModerator ? 'bg-pink-950 dark:text-white' : ''
+                            )}
+                        >
                             {getInitials(user.username)}
                         </Badge>
                         <Link href='/'>
