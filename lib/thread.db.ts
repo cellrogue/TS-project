@@ -158,6 +158,7 @@ export const lockThread = async (threadId: string, isLocked: boolean): Promise<v
     }
 };
 
+
 export const deleteThread = async (threadId: string, userId: string): Promise<void> => {
     try {
         const threadDocRef = doc(db, 'threads', threadId);

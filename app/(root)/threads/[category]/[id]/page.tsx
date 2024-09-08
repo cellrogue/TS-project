@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { deleteThread, getThreadById, lockThread, updateThread } from '@/lib/thread.db';
+import { deleteThread, getThreadById, lockThread } from '@/lib/thread.db';
 import { FaUnlock, FaLock, FaTrash } from 'react-icons/fa';
-
 import {
     Table,
     TableBody,
@@ -13,7 +12,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-
 import { Comments } from '@/components/Comments';
 import { NewCommentForm } from '@/components/NewCommentForm';
 import { Thread, Comment } from '@/app/types/thread';
@@ -22,9 +20,9 @@ import { useAuth } from '@/app/providers/authProvider';
 import { Badge } from '@/components/ui/badge';
 import Loading from '@/components/Loading';
 import { AlertCircle } from 'lucide-react';
-
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useComments } from '@/app/contexts/CommentsContext';
+import toast from 'react-hot-toast';
 
 const ThreadDetailsPage = () => {
     const {
@@ -74,8 +72,16 @@ const ThreadDetailsPage = () => {
     }, [id, router]);
 
     const handleToggleLock = async () => {
-        if (!thread) return;
-
+        if (!thread || !user) return;
+    
+        const isCreator = thread.creator.id === user.id;
+        const isAuthorized = isCreator || isModerator;
+    
+        if (!isAuthorized) {
+            toast.error('You are not authorized to lock/unlock this thread.');
+            return;
+        }
+    
         try {
             await lockThread(thread.id, !thread.isLocked);
             setThread({ ...thread, isLocked: !thread.isLocked });
@@ -83,9 +89,10 @@ const ThreadDetailsPage = () => {
             console.error('Failed to lock/unlock thread.', error);
         }
     };
+    
 
     const handleDeleteThread = async () => {
-        if (!thread || !user ) return;
+        if (!thread || !user) return;
 
         try {
             await deleteThread(thread.id, user.id);
@@ -93,12 +100,12 @@ const ThreadDetailsPage = () => {
         } catch (error) {
             console.error('Failed to delete thread.', error);
         }
-    }
+    };
 
     if (loading || !thread) return <Loading />;
 
     return (
-        <main className='flex flex-col justify-between '>
+        <main className='flex flex-col justify-between'>
             <div className='w-full mx-auto pl-12 px-6 max-w-6xl my-8 pt-6'>
                 <div className='border'>
                     <Table>
@@ -111,30 +118,30 @@ const ThreadDetailsPage = () => {
                                     <div className='mr-2'>
                                         {user && (
                                             <>
-                                            <button onClick={handleToggleLock}>
-                                                {thread.isLocked ? (
-                                                    <Badge
-                                                    variant='destructive'
-                                                    className='rounded-full p-3'>
-                                                        <FaLock className='h-3 w-3' />
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge
-                                                    variant='secondary'
-                                                    className='rounded-full p-3 transition-all duration-300 hover:scale-105'>
-                                                        <FaUnlock className='h-3 w-3' />
-                                                    </Badge>
-                                                )}
-                                            </button>
-                                            {(user.id === thread.creator.id || isModerator ) && (
-                                                <button onClick={handleDeleteThread}>
-                                                    <Badge
-                                                        variant='destructive'
-                                                        className='rounded-full p-3 m-2'>
-                                                        <FaTrash className='h-3 w-3' />
-                                                    </Badge>
+                                                <button onClick={handleToggleLock}>
+                                                    {thread.isLocked ? (
+                                                        <Badge
+                                                            variant='destructive'
+                                                            className='rounded-full p-3'>
+                                                            <FaLock className='h-3 w-3' />
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge
+                                                            variant='secondary'
+                                                            className='rounded-full p-3 transition-all duration-300 hover:scale-105'>
+                                                            <FaUnlock className='h-3 w-3' />
+                                                        </Badge>
+                                                    )}
                                                 </button>
-                                            )}
+                                                {(user.id === thread.creator.id || isModerator) && (
+                                                    <button onClick={handleDeleteThread}>
+                                                        <Badge
+                                                            variant='destructive'
+                                                            className='rounded-full p-3 m-2'>
+                                                            <FaTrash className='h-3 w-3' />
+                                                        </Badge>
+                                                    </button>
+                                                )}
                                             </>
                                         )}
                                     </div>
