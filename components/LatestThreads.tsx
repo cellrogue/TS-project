@@ -22,6 +22,7 @@ export const LatestThreads = () => {
     const [filteredThreads, setFilteredThreads] = useState<Thread[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedStatus, setSelectedStatus] = useState<ThreadStatus | 'All'>('All');
+    const [searchTag, setSearchTag] = useState('');
 
     const router = useRouter();
 
@@ -42,12 +43,23 @@ export const LatestThreads = () => {
     }, []);
 
     useEffect(() => {
-        if (selectedStatus === 'All') {
-            setFilteredThreads(threads);
-        } else {
-            setFilteredThreads(threads.filter(thread => thread.status === selectedStatus));
+        let filtered = threads;
+
+        if (selectedStatus !== 'All') {
+            filtered = filtered.filter(thread => thread.status === selectedStatus);
         }
-    }, [selectedStatus, threads]);
+
+        if (searchTag.trim()) {
+            filtered = filtered.filter(thread =>
+                Array.isArray(thread.tags) &&
+                thread.tags.some(tag =>
+                    tag?.name?.toLowerCase().includes(searchTag.toLowerCase())
+                )
+            );
+        }
+
+        setFilteredThreads(filtered);
+    }, [selectedStatus, searchTag, threads]);
 
     if (loading) return <Loading />;
 
@@ -67,18 +79,32 @@ export const LatestThreads = () => {
 
     return (
         <div className='mx-auto w-full pl-12 px-6 my-8 max-w-6xl'>
-            <div className='mb-4'>
-                <label htmlFor="statusFilter" className='mr-2'>Filter by Status:</label>
-                <select
-                    id="statusFilter"
-                    value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value as ThreadStatus | 'All')}
-                    className='p-2 border rounded'
-                >
-                    <option value="All">All</option>
-                    <option value="New">New</option>
-                    <option value="Hot">Hot</option>
-                </select>
+            <div className='flex justify-between'>
+                <div className='mb-4'>
+                    <label htmlFor="statusFilter" className='mr-2 text-m text-muted-foreground'>Filter by Status:</label>
+                    <select
+                        id="statusFilter"
+                        value={selectedStatus}
+                        onChange={(e) => setSelectedStatus(e.target.value as ThreadStatus | 'All')}
+                        className='p-2 border rounded text-sm text-muted-foreground'
+                    >
+                        <option value="All">All</option>
+                        <option value="New">New</option>
+                        <option value="Hot">Hot</option>
+                    </select>
+                </div>
+
+                <div className='mb-4'>
+                    <label htmlFor="tagSearch" className='mr-2 text-m text-muted-foreground'>Search by Tag:</label>
+                    <input
+                        type="text"
+                        id="tagSearch"
+                        value={searchTag}
+                        onChange={(e) => setSearchTag(e.target.value)}
+                        placeholder="Enter tag"
+                        className='p-2 border rounded text-sm text-muted-foreground'
+                    />
+                </div>
             </div>
 
             <Table className='border dark:border-muted'>
@@ -121,6 +147,13 @@ export const LatestThreads = () => {
                                         <span className='text-xs hover:underline cursor-pointer'>
                                             {thread.category}
                                         </span>
+                                    </div>
+                                    <div className='flex justify-start my-2 space-x-2'>
+                                        {thread.tags && thread.tags.map((tag) => (
+                                            <Badge key={tag.name} variant="tag">
+                                                {tag.name}
+                                            </Badge>
+                                        ))}
                                     </div>
                                 </TableCell>
                             </TableRow>

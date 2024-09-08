@@ -16,7 +16,9 @@ const badgeVariants = cva(
           "border-transparent bg-indigo-600 dark:bg-indigo-600/60 text-primary-foreground dark:text-primary/80 outline outline-1 outline-white dark:outline-white/40 shadow-md shadow-indigo-400 dark:shadow-gray-900/80 hover:bg-indigo-600/80",
         destructive:
           "border-transparent bg-destructive dark:bg-muted/80 dark:outline-red-600 text-destructive-foreground hover:bg-destructive/80 outline outline-1 outline-white dark:shadow-gray-900/90 shadow-md shadow-slate-300",
-        outline: "text-foreground",
+          tag:
+          "border-transparent bg-violet-600 dark:bg-violet-600/60 text-primary-foreground dark:text-primary/80 outline outline-1 outline-white dark:outline-white/40 shadow-md shadow-purple-400 dark:shadow-gray-900/80 hover:bg-purple-400/80",
+          outline: "text-foreground",
       },
     },
     defaultVariants: {

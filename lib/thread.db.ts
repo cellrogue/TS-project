@@ -1,6 +1,6 @@
 import { Thread, ThreadCategory, Comment } from '@/app/types/thread';
 import { db } from '@/firebase.config';
-import { setDoc, doc, getDoc, deleteDoc, collection, getDocs, addDoc, updateDoc } from 'firebase/firestore';
+import { setDoc, doc, getDoc, deleteDoc, collection, getDocs, addDoc, updateDoc, query, where } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 import { Timestamp } from 'firebase/firestore'; 
 import { getUserById } from './user.db';
@@ -234,4 +234,19 @@ export const addCommentToThread = async (threadId: string, comment: Comment): Pr
         toast.error('Failed to add comment: ' + (error as Error).message);
         throw new Error('Failed to add comment: ' + (error as Error).message);
     }
+};
+
+export const getThreadsByTag = async (tag: { id: string; name: string }) => {
+    const q = query(
+        collection(db, "threads"),
+        where("tags", "array-contains", tag)
+    );
+
+    const querySnapshot = await getDocs(q);
+    const threads: Thread[] = [];
+    querySnapshot.forEach((doc) => {
+        threads.push({ ...doc.data() as Thread, id: doc.id });
+    });
+
+    return threads;
 };
