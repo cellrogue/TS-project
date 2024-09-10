@@ -137,7 +137,7 @@ export const Navigation = () => {
                             variant='default'
                             className={cn(
                                 'text-sm font-light',
-                                user?.isModerator ? 'bg-pink-950 dark:text-white' : ''
+                                user?.isModerator ? 'bg-violet-600 dark:text-white' : ''
                             )}
                         >
                             {getInitials(user.username)}

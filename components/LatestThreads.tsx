@@ -16,6 +16,8 @@ import {
 import { formatCategoryforURL } from '@/lib/formatCategory';
 import { FaLock } from 'react-icons/fa';
 import Loading from './Loading';
+import { useAuth } from '@/app/providers/authProvider';
+import { User } from '@/app/types/user';
 
 export const LatestThreads = () => {
     const [threads, setThreads] = useState<Thread[]>([]);
@@ -23,6 +25,8 @@ export const LatestThreads = () => {
     const [loading, setLoading] = useState(true);
     const [selectedStatus, setSelectedStatus] = useState<ThreadStatus | 'All'>('All');
     const [searchTag, setSearchTag] = useState('');
+
+    const { user: currentUser } = useAuth() as { user: User | null };
 
     const router = useRouter();
 
@@ -64,6 +68,11 @@ export const LatestThreads = () => {
     if (loading) return <Loading />;
 
     const handleRowClick = async (threadId: string, category: string) => {
+        if (!currentUser) {
+            console.error('User is not logged in');
+            return;
+        }
+        
         try {
             const thread = await getThreadById(threadId);
             if (thread) {

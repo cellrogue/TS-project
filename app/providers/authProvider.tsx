@@ -1,6 +1,6 @@
 "use client";
 
-import { auth } from "@/firebase.config";
+import { auth, db } from "@/firebase.config";
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
@@ -18,6 +18,7 @@ import {
 } from "react";
 import toast from "react-hot-toast";
 import { User } from "../types/user";
+import { doc, getDoc } from "firebase/firestore";
 
 type AuthValues = {
   email: string;
@@ -40,25 +41,49 @@ const AuthContextProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [authLoaded, setAuthLoaded] = useState<boolean>(false);
 
+  
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (_user) => {
+    const unsub = onAuthStateChanged(auth, async (_user) => {
+
       if (_user) {
-        const user = {
-          id: _user.uid,
-          username: _user.displayName || "",
-          name: "",
-          email: _user.email || "",
-          password: "",
-        };
-        setUser(user);
+        try {
+          const userDoc = await getDoc(doc(db, 'users', _user.uid));
+          console.log("Fetched user document:", userDoc); 
+
+          if (userDoc.exists()) {
+            const userData = userDoc.data() as User;
+            console.log("User data from document:", userData); 
+
+            const user = {
+              id: _user.uid,
+              username: _user.displayName || "",
+              name: userData.name || "",
+              email: _user.email || "",
+              password: "",
+              isModerator: userData.isModerator || false,
+            };
+            setUser(user);
+            console.log("User set in state:", user); 
+          } else {
+            console.error("No such document!");
+            setUser(null);
+          }
+        } catch (error) {
+          console.error("Error fetching user document:", error);
+          setUser(null);
+        }
       } else {
         setUser(null);
       }
       setAuthLoaded(true);
+    }, (error) => {
+      console.error("Error with onAuthStateChanged:", error);
     });
 
     return () => unsub();
   }, []);
+
+  console.log("user:", user?.username);
 
   const register = async (values: AuthValues): Promise<string | void> => {
     const toastId = toast.loading("Creating account...");

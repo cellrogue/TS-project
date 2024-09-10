@@ -10,6 +10,7 @@ import { useAuth } from '../providers/authProvider';
 const LandingPage = () => {
     const router = useRouter();
     const { user } = useAuth();
+    console.log(user);
 
     const handleAddNewThreadClick = async (
         e: React.MouseEvent<HTMLAnchorElement, MouseEvent>
@@ -21,7 +22,7 @@ const LandingPage = () => {
     };
     return (
         <>
-            <header className='bg-secondary'>
+            <header className='bg-violet-100 dark:bg-secondary'>
                 <div className='pl-12 py-8 max-w-6xl mx-auto'>
                     <h1 className='text-base font-medium'>
                         Welcome to Threads

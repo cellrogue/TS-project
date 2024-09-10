@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { deleteThread, getThreadById, lockThread } from '@/lib/thread.db';
-import { FaUnlock, FaLock, FaTrash } from 'react-icons/fa';
+import { FaUnlock, FaLock, FaTrash, FaEdit } from 'react-icons/fa';
 import {
     Table,
     TableBody,
@@ -16,13 +16,14 @@ import { Comments } from '@/components/Comments';
 import { NewCommentForm } from '@/components/NewCommentForm';
 import { Thread, Comment } from '@/app/types/thread';
 import { User } from '@/app/types/user';
-import { useAuth } from '@/app/providers/authProvider';
 import { Badge } from '@/components/ui/badge';
 import Loading from '@/components/Loading';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useComments } from '@/app/contexts/CommentsContext';
 import toast from 'react-hot-toast';
+import { getUserById } from '@/lib/user.db';
+import { useAuth } from '@/app/providers/authProvider';
 
 const ThreadDetailsPage = () => {
     const {
@@ -35,17 +36,16 @@ const ThreadDetailsPage = () => {
 
     const [thread, setThread] = useState<Thread | null>(null);
     const [threadCreatorId, setThreadCreatorId] = useState<User | null>(null);
-    const { user } = useAuth();
     const router = useRouter();
     const [loading, setLoading] = useState(true);
-
-    const isModerator = user?.isModerator || false;
+    const { user: currentUser } = useAuth() as { user: User | null };
+    console.log('Current user:', currentUser);
 
     useEffect(() => {
         const fetchThread = async () => {
             if (id) {
                 try {
-                    const fetchedThread = await getThreadById(id);
+                    const fetchedThread = await getThreadById(id.toString() || '');
                     if (fetchedThread) {
                         setThread(fetchedThread);
                         setComments(fetchedThread.comments);
@@ -72,9 +72,10 @@ const ThreadDetailsPage = () => {
     }, [id, router]);
 
     const handleToggleLock = async () => {
-        if (!thread || !user) return;
+        if (!thread || !currentUser) return;
     
-        const isCreator = thread.creator.id === user.id;
+        const isCreator = thread.creator.id === currentUser.id;
+        const isModerator = currentUser?.isModerator;
         const isAuthorized = isCreator || isModerator;
     
         if (!isAuthorized) {
@@ -92,13 +93,19 @@ const ThreadDetailsPage = () => {
     
 
     const handleDeleteThread = async () => {
-        if (!thread || !user) return;
+        if (!thread || !currentUser) return;
 
         try {
-            await deleteThread(thread.id, user.id);
+            await deleteThread(thread.id, currentUser.id);
             router.push('/');
         } catch (error) {
             console.error('Failed to delete thread.', error);
+        }
+    };
+
+    const handleEditThread = () => {
+        if (thread?.id) {
+            router.push(`/threads/edit/${thread.id}`);
         }
     };
 
@@ -115,8 +122,8 @@ const ThreadDetailsPage = () => {
                                     <div>
                                         <p>{thread.title}</p>
                                     </div>
-                                    <div className='mr-2'>
-                                        {user && (
+                                    <div className='space-x-2'>
+                                        {currentUser && (
                                             <>
                                                 <button onClick={handleToggleLock}>
                                                     {thread.isLocked ? (
@@ -132,16 +139,27 @@ const ThreadDetailsPage = () => {
                                                             <FaUnlock className='h-3 w-3' />
                                                         </Badge>
                                                     )}
-                                                </button>
-                                                {(user.id === thread.creator.id || isModerator) && (
-                                                    <button onClick={handleDeleteThread}>
-                                                        <Badge
-                                                            variant='destructive'
-                                                            className='rounded-full p-3 m-2'>
-                                                            <FaTrash className='h-3 w-3' />
-                                                        </Badge>
                                                     </button>
-                                                )}
+                                                    {(currentUser?.id === thread.creator.id || currentUser?.isModerator) && (
+                                                        <>
+                                                            {console.log('Current user is creator:', currentUser?.id === thread.creator.id)}
+                                                            {console.log('Current user is moderator:', currentUser?.isModerator)}
+                                                            <button onClick={handleEditThread}>
+                                                                <Badge
+                                                                    variant='secondary'
+                                                                    className='rounded-full p-3 m-2'>
+                                                                    <FaEdit className='h-3 w-3' />
+                                                                </Badge>
+                                                            </button>
+                                                            <button onClick={handleDeleteThread}>
+                                                                <Badge
+                                                                    variant='destructive'
+                                                                    className='rounded-full p-3 m-2'>
+                                                                    <FaTrash className='h-3 w-3' />
+                                                                </Badge>
+                                                            </button>
+                                                        </>
+                                                    )}
                                             </>
                                         )}
                                     </div>
@@ -204,7 +222,7 @@ const ThreadDetailsPage = () => {
                 )}
             </div>
 
-            {!thread.isLocked && user && (
+            {!thread.isLocked && currentUser && (
                 <div className='w-full pl-12 px-6 py-8 bg-primary-foreground'>
                     <div className='mx-auto max-w-3xl'>
                         <NewCommentForm
